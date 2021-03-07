@@ -1,11 +1,28 @@
 #include <WiFi.h>
 #include <ESPmDNS.h>
+#include <ESPAsyncWebServer.h>
+#include <HTTPClient.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include "Credentials.h"
 
+#include <arduino-timer.h>
+
 const char *ssid = esp_config::ssid;         //YOUR SSID HERE
 const char *password = esp_config::password; //YOUR PASSWORD HERE
+
+//Global variables
+int nrOfServices = 0;
+String global_log_string = "";
+//global forward declarations
+bool update_services(void *);
+void displayServices(AsyncWebServerRequest *request);
+String httpGETRequest(String serverName);
+
+//Used variables
+AsyncWebServer server(80);
+HTTPClient http;
+auto timer = timer_create_default();
 
 void setup()
 {
@@ -67,14 +84,100 @@ void setup()
 
   ArduinoOTA.begin();
 
+  // Custom Code Here
+
+  //Intialization
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+
+  if (!MDNS.begin("homeserver"))
+  {
+    Serial.println("Error starting mDNS");
+    return;
+  }
+
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addServiceTxt("http", "tcp", "prop1", "test");
+  MDNS.addServiceTxt("http", "tcp", "prop2", "test2");
+
+  server.on("/hello", HTTP_GET, displayServices);
+
+  //Task Scheduling
+  timer.every(5000, update_services);
+
+  server.begin();
 }
 
 void loop()
 {
   ArduinoOTA.handle();
-  Serial.println("Hello World from Server!");
-  delay(1000);
+  timer.tick();
+}
+
+/*
+  Update Tasks for background
+*/
+
+void displayServices(AsyncWebServerRequest *request)
+{
+  //nrOfServices = MDNS.queryService("http", "tcp");
+  String s = "Number of Services: " + String(nrOfServices);
+  for (int i = 0; i < nrOfServices; i = i + 1)
+  {
+    String ip = MDNS.IP(i).toString();
+    String servername = "http://" + ip + "/getapi";
+    s += "<br><hr>";
+    s += "<h1>Service: " + String(MDNS.hostname(i)) + "</h1>";
+    s += "<br>";
+    s += "IP: " + ip;
+    s += "<br>";
+    s += "Port:" + String(MDNS.port(i));
+    s += "<br> Api: <br>";
+    String payload = httpGETRequest(servername);
+    s += payload;
+  }
+  s += "<hr>";
+  s += global_log_string;
+  request->send(200, "text/html", s);
+}
+
+bool update_services(void *)
+{
+  nrOfServices = MDNS.queryService("http", "tcp");
+  //global_log_string += String(millis()) + ": Updated services to : " + String(nrOfServices) + "\n<br>";
+  return true;
+}
+
+String httpGETRequest(String serverName)
+{
+  HTTPClient http;
+
+  // Your IP address with path or Domain name with URL path
+  http.begin(serverName);
+
+  // Send HTTP POST request
+  int httpResponseCode = http.GET();
+
+  String payload = "{}";
+
+  if (httpResponseCode > 0)
+  {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    payload = http.getString();
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+
+  return payload;
+}
+
+void handleButtonPress()
+{
 }
