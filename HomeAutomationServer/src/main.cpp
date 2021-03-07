@@ -4,15 +4,15 @@
 #include <ArduinoOTA.h>
 #include "Credentials.h"
 
-const char *ssid = esp_config::ssid; //YOUR SSID HERE
+const char *ssid = esp_config::ssid;         //YOUR SSID HERE
 const char *password = esp_config::password; //YOUR PASSWORD HERE
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println("Booting");
-  WiFi.mode(WIFI_STA);
   WiFi.setHostname("HomeServer");
+  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
