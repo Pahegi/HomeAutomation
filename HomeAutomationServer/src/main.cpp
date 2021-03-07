@@ -12,6 +12,7 @@ void setup()
   Serial.begin(115200);
   Serial.println("Booting");
   WiFi.mode(WIFI_STA);
+  WiFi.setHostname("HomeServer");
   WiFi.begin(ssid, password);
   while (WiFi.waitForConnectResult() != WL_CONNECTED)
   {
@@ -74,6 +75,6 @@ void setup()
 void loop()
 {
   ArduinoOTA.handle();
-  Serial.println("Hello World!");
+  Serial.println("Hello World from Server!");
   delay(1000);
 }

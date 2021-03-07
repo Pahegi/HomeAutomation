@@ -75,5 +75,5 @@ void loop()
 {
   ArduinoOTA.handle();
   Serial.println("Hello World!");
-  delay(1000);
+  delay(100);
 }
