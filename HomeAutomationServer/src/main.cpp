@@ -17,6 +17,8 @@ String global_log_string = "";
 //global forward declarations
 bool update_services(void *);
 void displayServices(AsyncWebServerRequest *request);
+void handleButtonPressOn(AsyncWebServerRequest *request);
+void handleButtonPressOff(AsyncWebServerRequest *request);
 String httpGETRequest(String serverName);
 
 //Used variables
@@ -102,9 +104,11 @@ void setup()
   MDNS.addServiceTxt("http", "tcp", "prop2", "test2");
 
   server.on("/hello", HTTP_GET, displayServices);
+  server.on("/button_on", HTTP_GET, handleButtonPressOn);
+  server.on("/button_off", HTTP_GET, handleButtonPressOff);
 
   //Task Scheduling
-  timer.every(5000, update_services);
+  //timer.every(5000, update_services);
 
   server.begin();
 }
@@ -142,12 +146,36 @@ void displayServices(AsyncWebServerRequest *request)
   request->send(200, "text/html", s);
 }
 
+void handleButtonPressOn(AsyncWebServerRequest *request)
+{
+  httpGETRequest("http://homeclient/on");
+  String host = request->host();
+  global_log_string += host + "<br>";
+  request->send(200, "text/plain", "");
+}
+
+void handleButtonPressOff(AsyncWebServerRequest *request)
+{
+  httpGETRequest("http://homeclient/off");
+  String host = request->url();
+  global_log_string += host + "<br>";
+  request->send(200, "text/plain", "");
+}
+
+/*
+  Update Tasks for background
+*/
+
 bool update_services(void *)
 {
   nrOfServices = MDNS.queryService("http", "tcp");
   //global_log_string += String(millis()) + ": Updated services to : " + String(nrOfServices) + "\n<br>";
   return true;
 }
+
+/*
+ Predefined functions
+*/
 
 String httpGETRequest(String serverName)
 {
@@ -176,8 +204,4 @@ String httpGETRequest(String serverName)
   http.end();
 
   return payload;
-}
-
-void handleButtonPress()
-{
 }
